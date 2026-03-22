@@ -14,7 +14,7 @@ const rooms = new Map<string, Room>();
 
 // 客户端消息结构
 interface ClientMessage {
-    type: 'join' | 'inc';
+    type: 'join' | 'inc' | 'list';
     roomId?: string;
 }
 
@@ -39,7 +39,7 @@ wss.on('connection', (ws: WebSocket) => {
                         rooms.set(roomId, { count: 0, clients: new Set() });
                     }
                     const room = rooms.get(roomId)!;
-                    room.clients.add(ws);
+                    room.clients.add(ws); 
                     currentRoom = roomId;
                     // 发送当前计数
                     ws.send(JSON.stringify({ type: 'state', count: room.clients.size }));
@@ -57,6 +57,16 @@ wss.on('connection', (ws: WebSocket) => {
                             }
                         });
                         console.log(`房间 ${currentRoom} 计数 => ${room.count}`);
+                    }
+                    break;
+                case 'list':
+                    {
+                        let roomList: Array<{ roomId: string, joinedCount: number | undefined }> = new Array<{ roomId: string, joinedCount: number | undefined }>();
+
+                        for (let key of rooms.keys()) {
+                            roomList.push({ roomId: key, joinedCount: rooms.get(key)?.clients.size });
+                        }
+                        ws.send(JSON.stringify({ type: 'listdata', data: roomList })); 
                     }
                     break;
             }
