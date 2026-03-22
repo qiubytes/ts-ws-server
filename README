@@ -1,0 +1,31 @@
+```
+mkdir ts-ws-server
+cd ts-ws-server
+npm init -y
+npm install ws
+npm install -D typescript @types/node @types/ws ts-node nodemon
+```
+
+```
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "./dist"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
+}
+```
+
+```
+"scripts": {
+    "dev": "nodemon --exec ts-node src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js"
+}
+```
