@@ -1,0 +1,38 @@
+# 依赖目录
+node_modules/
+
+# 编译输出目录
+dist/
+build/
+lib/
+
+# 日志文件
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 环境变量文件
+.env
+.env.local
+.env.*.local
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+
+# IDE 配置（可选）
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# TypeScript 构建信息
+*.tsbuildinfo
+
+# 测试覆盖率
+coverage/
+
+# 临时文件
+tmp/
+temp/
