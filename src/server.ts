@@ -20,10 +20,28 @@ interface ClientMessage {
     type: 'join' | 'inc' | 'list';
     roomId?: string;
 }
-//发送已加入房间 消息
+//发送已加入房间 消息（服务端发送我的状态给我）
 function sendRoomJoinedMsg(ws: WebSocket, roomId: string) {
     ws.send(JSON.stringify({ type: 'roomJoined', roomId: roomId }));
 }
+//发送已加入房间 消息（服务端发送房间内其他玩家的状态给我） 
+function sendRoomOtherJoinedMsg(roomId: string, currentClientId: string) {
+    let room: Room | undefined = rooms.get(roomId);
+    room?.clients.forEach(id => {
+        if (id != currentClientId) {
+            clients.get(id)?.send(JSON.stringify({ type: 'roomOtherJoined', roomId: roomId, clientid: id }));
+        }
+    });
+}
+//发送已退出房间 消息（服务端发送房间内其他玩家的状态给我）  
+// function sendRoomOtherOutJoinedMsg(roomId: string, currentClientId: string) {
+//     let room: Room | undefined = rooms.get(roomId);
+//     room?.clients.forEach(id => {
+//         if (id != currentClientId) {
+//             clients.get(id)?.send(JSON.stringify({ type: 'roomOtherOutJoined', roomId: roomId, clientid: id }));
+//         }
+//     });
+// }
 wss.on('connection', (ws: WebSocket) => {
     console.log('新客户端连接');
     let currentRoom: string | null = null;
@@ -50,7 +68,8 @@ wss.on('connection', (ws: WebSocket) => {
                     const room = rooms.get(roomId)!;
                     room.clients.add(clientId);
                     currentRoom = roomId;
-                    sendRoomJoinedMsg(ws,roomId);
+                    sendRoomJoinedMsg(ws, roomId);
+                    sendRoomOtherJoinedMsg(roomId,clientId);
                     // 发送当前计数
                     ws.send(JSON.stringify({ type: 'state', count: room.clients.size }));
                     console.log(`客户端加入房间 ${roomId}`);
