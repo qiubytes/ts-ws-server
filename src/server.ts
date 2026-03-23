@@ -20,7 +20,10 @@ interface ClientMessage {
     type: 'join' | 'inc' | 'list';
     roomId?: string;
 }
-
+//发送已加入房间 消息
+function sendRoomJoinedMsg(ws: WebSocket, roomId: string) {
+    ws.send(JSON.stringify({ type: 'roomJoined', roomId: roomId }));
+}
 wss.on('connection', (ws: WebSocket) => {
     console.log('新客户端连接');
     let currentRoom: string | null = null;
@@ -47,6 +50,7 @@ wss.on('connection', (ws: WebSocket) => {
                     const room = rooms.get(roomId)!;
                     room.clients.add(clientId);
                     currentRoom = roomId;
+                    sendRoomJoinedMsg(ws,roomId);
                     // 发送当前计数
                     ws.send(JSON.stringify({ type: 'state', count: room.clients.size }));
                     console.log(`客户端加入房间 ${roomId}`);
