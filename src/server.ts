@@ -104,8 +104,8 @@ wss.on('connection', (ws: WebSocket) => {
                     sendRoomJoinedMsg(ws, roomId);//给自己发送加入消息
                     sendRoomOtherJoinedMsg(roomId, clientId);//给其他玩家发送加入消息
                     // 发送当前计数
-                    ws.send(JSON.stringify({ type: 'state', count: room.clients.size }));
-                    console.log(`客户端加入房间 ${roomId}`);
+                    // ws.send(JSON.stringify({ type: 'state', count: room.clients.size }));
+                    // console.log(`客户端加入房间 ${roomId}`);
                     break;
 
                 case 'inc':
