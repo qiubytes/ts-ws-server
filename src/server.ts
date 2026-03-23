@@ -17,7 +17,7 @@ const clients = new Map<string, WebSocket>();
 
 // 客户端消息结构
 interface ClientMessage {
-    type: 'join' | 'inc' | 'list';
+    type: 'join' | 'inc' | 'list' | 'getmyinfo' | 'getMyRoomInfo';
     roomId?: string;
 }
 //发送已加入房间 消息（服务端发送我的状态给我）
@@ -69,7 +69,7 @@ wss.on('connection', (ws: WebSocket) => {
                     room.clients.add(clientId);
                     currentRoom = roomId;
                     sendRoomJoinedMsg(ws, roomId);
-                    sendRoomOtherJoinedMsg(roomId,clientId);
+                    sendRoomOtherJoinedMsg(roomId, clientId);
                     // 发送当前计数
                     ws.send(JSON.stringify({ type: 'state', count: room.clients.size }));
                     console.log(`客户端加入房间 ${roomId}`);
@@ -96,6 +96,21 @@ wss.on('connection', (ws: WebSocket) => {
                             roomList.push({ roomId: key, joinedCount: rooms.get(key)?.clients.size });
                         }
                         ws.send(JSON.stringify({ type: 'listroomdata', data: roomList }));
+                    }
+                    break;
+                case "getmyinfo": //获取我的信息
+                    {
+                        ws.send(JSON.stringify({ type: 'myinfo', data: { clientid: clientId } }));
+                    }
+                    break;
+                case "getMyRoomInfo": //获取房间内所有客户端信息
+                    {
+                        let room: Room | undefined = rooms.get(currentRoom ?? "");
+                        let roomClients: Array<String> = new Array<String>();
+                        room?.clients.forEach(id => {
+                            roomClients.push(id);
+                        });
+                        ws.send(JSON.stringify({ type: 'MyRoomInfo', data: { clientid: clientId, clients: roomClients } }));
                     }
                     break;
             }
