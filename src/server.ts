@@ -209,7 +209,7 @@ wss.on('connection', (ws: WebSocket) => {
                     break;
                 case "playingData":  //接收到 出牌数据
                     {
-                        let troom: Room | undefined = rooms.get(roomId ?? '');
+                        let troom: Room | undefined = rooms.get(currentRoom ?? '');
                         if (troom?.roundState.currentClientId == clientId) {
                             const playingdata = msg.playingData;
                             troom?.roundState.playerResult.set(clientId, playingdata ?? ''); //存入本轮数据
