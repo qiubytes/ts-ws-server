@@ -20,7 +20,7 @@ interface Room {
         playerResult: Map<string, string | 'scissors' | 'rock' | 'paper'>,  //客户端ID  猜拳结果 剪刀 石头 布 Scissors, rock, paper
         currentClientId: string,  //当前该谁出牌（客户端ID）
         roundWinnerId: string //赢家ID 
-        isContinue: Set<string>  //一轮完了后  玩家是否点击继续
+        isContinue: Set<string>  //一轮完了后  玩家是否点击继续（ToDo现在是直接延迟几秒  直接下一轮，这里后续进行改造）
     }
 }
 
@@ -73,6 +73,11 @@ function sendRoomState(roomId: string, roomState: string) {
         clients.get(id)?.send(JSON.stringify({ type: 'RoomStateChanged', roomId: roomId, roomState: roomState }));
     });
     //等待三秒选出一个当前出牌人
+    randomTimeOutSelTurnToPlay(roomId);
+}
+//等待三秒选出一个当前出牌人
+function randomTimeOutSelTurnToPlay(roomId: string) {
+
     setTimeout(() => {
         let cuRoom: Room | undefined = rooms.get(roomId);
         if (cuRoom != undefined) {
@@ -81,7 +86,13 @@ function sendRoomState(roomId: string, roomState: string) {
             cuRoom.roundState.currentClientId = arrclient[index];
             let clientws: WebSocket | undefined = clients.get(cuRoom.roundState.currentClientId);
             if (clientws != undefined) {
+                //一个人出牌
                 sendIsYouTurnToPlay(clientws);
+                //其余人等待 
+                let targetArr: string[] = Array.from(cuRoom.clients).filter(o => o != cuRoom.roundState.currentClientId);
+                targetArr.forEach(x => {
+                    sendIsYouWaitPlay(clients.get(x) as WebSocket);
+                });
             }
         }
     }, 3000);
@@ -90,8 +101,12 @@ function sendRoomState(roomId: string, roomState: string) {
 function sendIsYouTurnToPlay(clientws: WebSocket) {
     clientws.send(JSON.stringify({ type: 'isYouTurnToPlay' }));
 }
+//该你等待（对方出牌）
+function sendIsYouWaitPlay(clientws: WebSocket) {
+    clientws.send(JSON.stringify({ type: 'isYouWaitPlay' }));
+}
 //发送此轮结局  result  赢家ID  或者 draw平局
-function sendThisRoundResult(clientws: WebSocket, result: string) {
+function sendThisRoundResult(clientws: WebSocket, result: string) { 
     clientws.send(JSON.stringify({ type: 'roundResult', result: result }));
 }
 //发送已退出房间 消息（服务端发送房间内其他玩家的状态给我）  
@@ -236,8 +251,12 @@ wss.on('connection', (ws: WebSocket) => {
                                     troom.roundState.roundWinnerId = player2;
                                 }
                                 //发送本轮结果
-                                sendThisRoundResult(clients.get(player1) as WebSocket,troom.roundState.roundWinnerId);
-                                sendThisRoundResult(clients.get(player2) as WebSocket,troom.roundState.roundWinnerId);
+                                sendThisRoundResult(clients.get(player1) as WebSocket, troom.roundState.roundWinnerId);
+                                sendThisRoundResult(clients.get(player2) as WebSocket, troom.roundState.roundWinnerId);
+                                //等待三秒选出一个当前出牌人
+                                troom.roundState.playerResult.clear();//清除这轮的对战数据
+                                randomTimeOutSelTurnToPlay(currentRoom ?? '');
+
                             } else {
                                 //通知下一个玩家出牌
                                 let targetclientid: string = '';
@@ -248,7 +267,13 @@ wss.on('connection', (ws: WebSocket) => {
                                 });
                                 troom.roundState.currentClientId = targetclientid;
                                 let targetws: WebSocket = clients.get(targetclientid) as WebSocket;
+                                //一人出牌
                                 sendIsYouTurnToPlay(targetws);
+                                //其余人等待
+                                let targetArr: string[] = Array.from(troom.clients).filter(o => o != troom.roundState.currentClientId);
+                                targetArr.forEach(x => {
+                                    sendIsYouWaitPlay(clients.get(x) as WebSocket);
+                                });
                             }
                         }
                     }
