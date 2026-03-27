@@ -58,10 +58,13 @@ function sendRoomClientStateChanged(currentClientId: string, roomId: string, sta
     });
     //检测是否全准备（是就开始游戏）
     let GameStartIng: boolean = false;
+    //客户端属性转数组
+    let clientProperties: RoomClientProperty[] = rooms.get(roomId)?.clientsProperty
+        ? Array.from(rooms.get(roomId)?.clientsProperty.values() ?? []) : [];
 
-    GameStartIng = rooms.get(roomId)?.clientsProperty
-        ? Array.from(rooms.get(roomId)?.clientsProperty.values() ?? []).every(st => st.state === 'Ready')
-        : false;
+    GameStartIng = clientProperties.every(st => st.state === 'Ready')
+        && clientProperties.length > 1
+        ? true : false;
     //通知客户端开始游戏
     if (GameStartIng) {
         sendRoomState(roomId, 'Play');
@@ -106,7 +109,7 @@ function sendIsYouWaitPlay(clientws: WebSocket) {
     clientws.send(JSON.stringify({ type: 'isYouWaitPlay' }));
 }
 //发送此轮结局  result  赢家ID  或者 draw平局
-function sendThisRoundResult(clientws: WebSocket, result: string) { 
+function sendThisRoundResult(clientws: WebSocket, result: string) {
     clientws.send(JSON.stringify({ type: 'roundResult', result: result }));
 }
 //发送已退出房间 消息（服务端发送房间内其他玩家的状态给我）  
