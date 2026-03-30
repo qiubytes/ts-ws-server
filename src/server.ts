@@ -6,7 +6,8 @@ console.log('WebSocket 服务器启动在 ws://localhost:3000');
 
 //房间客户端状态
 interface RoomClientProperty {
-    state: 'NotReady' | 'Ready'  //玩家状态 未准备 准备
+    state: string | 'NotReady' | 'Ready'; //玩家状态 未准备 准备
+    score: number;  //玩家分数(每轮分数的累计)
 }
 // 房间数据结构
 interface Room {
@@ -108,9 +109,9 @@ function sendIsYouTurnToPlay(clientws: WebSocket) {
 function sendIsYouWaitPlay(clientws: WebSocket) {
     clientws.send(JSON.stringify({ type: 'isYouWaitPlay' }));
 }
-//发送此轮结局  result  赢家ID  或者 draw平局
-function sendThisRoundResult(clientws: WebSocket, result: string) {
-    clientws.send(JSON.stringify({ type: 'roundResult', result: result }));
+//发送此轮结局  result  赢家ID  或者 draw平局  myscore 我的分数 opponentscore 对方分数
+function sendThisRoundResult(clientws: WebSocket, result: string, mysocre: number, opponentscore: number) {
+    clientws.send(JSON.stringify({ type: 'roundResult', result: result, mysocre: mysocre, opponentscore: opponentscore }));
 }
 //发送已退出房间 消息（服务端发送房间内其他玩家的状态给我）  
 // function sendRoomOtherOutJoinedMsg(roomId: string, currentClientId: string) {
@@ -162,7 +163,7 @@ wss.on('connection', (ws: WebSocket) => {
                     }
                     const room = rooms.get(roomId)!;
                     room.clients.add(clientId);
-                    room.clientsProperty.set(clientId, { state: "NotReady" })//设置房间客户端状态
+                    room.clientsProperty.set(clientId, { state: "NotReady", score: 0 })//设置房间客户端状态,默认分数0
                     currentRoom = roomId;
                     sendRoomJoinedMsg(ws, roomId);//给自己发送加入消息
                     sendRoomOtherJoinedMsg(roomId, clientId);//给其他玩家发送加入消息
@@ -249,13 +250,26 @@ wss.on('connection', (ws: WebSocket) => {
                                 ) {
                                     //player1赢
                                     troom.roundState.roundWinnerId = player1;
+                                    //累计分数
+                                    let rcprop: RoomClientProperty;
+                                    if (rcprop = troom.clientsProperty.get(player1) as RoomClientProperty) {
+                                        rcprop.score++;
+                                    }
                                 } else {
                                     //player2赢
                                     troom.roundState.roundWinnerId = player2;
+                                    //累计分数
+                                    let rcprop: RoomClientProperty;
+                                    if (rcprop = troom.clientsProperty.get(player2) as RoomClientProperty) {
+                                        rcprop.score++;
+                                    }
                                 }
                                 //发送本轮结果
-                                sendThisRoundResult(clients.get(player1) as WebSocket, troom.roundState.roundWinnerId);
-                                sendThisRoundResult(clients.get(player2) as WebSocket, troom.roundState.roundWinnerId);
+                                let player1property: RoomClientProperty = troom.clientsProperty.get(player1) as RoomClientProperty;
+                                let player2property: RoomClientProperty = troom.clientsProperty.get(player2) as RoomClientProperty;
+
+                                sendThisRoundResult(clients.get(player1) as WebSocket, troom.roundState.roundWinnerId, player1property.score, player2property.score);
+                                sendThisRoundResult(clients.get(player2) as WebSocket, troom.roundState.roundWinnerId, player2property.score, player1property.score);
                                 //等待三秒选出一个当前出牌人
                                 troom.roundState.playerResult.clear();//清除这轮的对战数据
                                 randomTimeOutSelTurnToPlay(currentRoom ?? '');
